@@ -1,4 +1,4 @@
-$modulePath = "$PSScriptRoot\PoshWUG"
+$modulePath = "$PSScriptRoot\PoshSophos"
 
 $moduleManifest = Import-PowerShellDataFile -Path ('{0}\*.psd1' -f $modulePath)
 
