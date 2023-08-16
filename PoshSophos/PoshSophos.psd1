@@ -12,7 +12,7 @@
     # RootModule = ''
 
     # Version number of this module.
-    ModuleVersion     = '0.1'
+    ModuleVersion     = '0.2'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -30,7 +30,7 @@
     Copyright         = '(c) 2023 Zack Moss. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description       = 'Module to work with the Sophos Central API'
+    Description       = 'Module to work with the Sophos Central Tenant API'
 
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '3.0'
@@ -110,6 +110,9 @@
             ReleaseNotes = '
         Version 0.1
         - First release!
+
+        Version 0.2
+        - Added tenant code for dynamic api regions
         '
 
         } # End of PSData hashtable

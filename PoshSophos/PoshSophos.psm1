@@ -74,26 +74,39 @@ function Connect-SophosCentral {
 
         $authDetails | Add-Member -MemberType NoteProperty -Name expires_at -Value $expiresAt
         $authDetails.access_token = $authDetails.access_token | ConvertTo-SecureString -AsPlainText -Force
-        $sophosCentral = $authDetails
+        $Script:SophosCentral = $authDetails
     }
 
-    $SophosCentral
+    $Script:SophosCentral
 }
 
 function New-SophosHeaders {
 
+    [CmdletBinding()]
+    param (
+
+        [switch] $Initial
+    )
+
     $sophosCredentials = Get-SophosCredential
 
-    $connectData = Connect-SophosCentral -ClientID $sophosCredentials.ClientID -ClientSecret $sophosCredentials.ClientSecret
+    $null = Connect-SophosCentral -ClientID $sophosCredentials.ClientID -ClientSecret $sophosCredentials.ClientSecret
 
     $headers = @{
 
-        Authorization = 'Bearer ' + (Unprotect-Secret -Secret $connectData.access_token)
+        Authorization = 'Bearer ' + (Unprotect-Secret -Secret $Script:SophosCentral.access_token)
     }
 
-    $tenantId = Invoke-RestMethod -Uri 'https://api.central.sophos.com/whoami/v1' -Headers $headers -Method Get -UseBasicParsing
+    $tenantUri = 'https://api.central.sophos.com/whoami/v1'
 
-    $headers.Add('X-Tenant-ID', $tenantId.id)
+    $tenantInfo = Invoke-RestMethod -Uri $tenantUri -Headers $headers -Method Get -UseBasicParsing
+
+    $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name GlobalEndpoint -Value $tenantInfo.apiHosts.global
+    $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name RegionEndpoint -Value $tenantInfo.apiHosts.dataRegion
+    $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name TenantID -Value $tenantInfo.id
+    $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name IDType -Value $tenantInfo.idType
+
+    $headers.Add('X-Tenant-ID', $Script:SophosCentral.TenantID)
 
     $headers
 }
@@ -211,6 +224,10 @@ function Invoke-UriBuilder {
         [array] $FilteredParameters
     )
 
+    $regionEndpoint = $Script:SophosCentral.RegionEndpoint
+
+    $Uri = $regionEndpoint + $Uri
+
     $uriBuilder = [System.UriBuilder]::New($Uri.AbsoluteUri)
 
     $blockedParams = 'Verbose', 'Force', 'Debug', 'WhatIf' + $FilteredParameters
@@ -273,7 +290,6 @@ function Unprotect-Secret {
 function Get-SophosCentralEndpoint {
 
     [CmdletBinding()]
-    [Alias('Get-SophosCentralEndpoints')]
     param (
 
         [ValidateSet('bad', 'good', 'suspicious', 'unknown')]
@@ -301,39 +317,9 @@ function Get-SophosCentralEndpoint {
         [ValidateSet('hostname', 'groupName', 'associatedPersonName', 'ipAddress', 'osName')]
         [string] $SearchField = 'hostname',
 
-        [ValidateScript({
-                if ($_.GetType().Name -eq 'DateTime') {
-                    return $true
-                }
-                else {
-                    #match this duration format https://en.wikipedia.org/wiki/ISO_8601#Durations
-                    $regex = '^[-+]?P(?!$)(([-+]?\d+Y)|([-+]?\d+\.\d+Y$))?(([-+]?\d+M)|([-+]?\d+\.\d+M$))?(([-+]?\d+W)|([-+]?\d+\.\d+W$))?(([-+]?\d+D)|([-+]?\d+\.\d+D$))?(T(?=[\d+-])(([-+]?\d+H)|([-+]?\d+\.\d+H$))?(([-+]?\d+M)|([-+]?\d+\.\d+M$))?([-+]?\d+(\.\d+)?S)?)??$'
-                    if ($_ -match $regex) {
-                        return $true
-                    }
-                    else {
-                        throw "See 'Get-Help Get-SophosCentralEndpoint -Examples' for some examples"
-                    }
-                }
-            })]
-        $LastSeenBefore,
+        [datetime] $LastSeenBefore,
 
-        [ValidateScript({
-                if ($_.GetType().Name -eq 'DateTime') {
-                    return $true
-                }
-                else {
-                    #match this duration format https://en.wikipedia.org/wiki/ISO_8601#Durations
-                    $regex = '^[-+]?P(?!$)(([-+]?\d+Y)|([-+]?\d+\.\d+Y$))?(([-+]?\d+M)|([-+]?\d+\.\d+M$))?(([-+]?\d+W)|([-+]?\d+\.\d+W$))?(([-+]?\d+D)|([-+]?\d+\.\d+D$))?(T(?=[\d+-])(([-+]?\d+H)|([-+]?\d+\.\d+H$))?(([-+]?\d+M)|([-+]?\d+\.\d+M$))?([-+]?\d+(\.\d+)?S)?)??$'
-                    if ($_ -match $regex) {
-                        return $true
-                    }
-                    else {
-                        throw "See 'Get-Help Get-SophosCentralEndpoint -Examples' for some examples"
-                    }
-                }
-            })]
-        $LastSeenAfter,
+        [datetime] $LastSeenAfter,
 
         [ValidateScript({
                 if ($false -eq [System.Guid]::TryParse($_, $([ref][guid]::Empty))) {
@@ -343,8 +329,7 @@ function Get-SophosCentralEndpoint {
                     return $true
                 }
             })]
-        [string[]]
-        $ID
+        [string[]] $ID
     )
 
     if ($ID.count -gt 0) {
@@ -354,9 +339,9 @@ function Get-SophosCentralEndpoint {
         $null = $PsBoundParameters.Remove('ID')
     }
 
-    $uriBase = [System.Uri]::New($SCRIPT:SophosCentral.RegionEndpoint + '/endpoint/v1/endpoints')
+    $uriEndpoint = '/endpoint/v1/endpoints'
 
-    $uri = Invoke-UriBuilder -Uri $uriBase -OriginalPsBoundParameters $PsBoundParameters
+    $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
 
     Invoke-SophosCentralWebRequest -Uri $uri
 }
@@ -379,7 +364,9 @@ function Remove-SophosCentralEndpoint {
 
         foreach ($endpoint in $EndpointId) {
 
-            $uri = 'https://api-us03.central.sophos.com/endpoint/v1/endpoints/{0}' -f $endpoint
+            $uriEndpoint = '/endpoint/v1/endpoints/{0}' -f $endpoint
+
+            $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
 
             Invoke-SophosCentralWebRequest -Uri $uri -Method Delete
         }
