@@ -12,7 +12,7 @@
     # RootModule = ''
 
     # Version number of this module.
-    ModuleVersion     = '0.2'
+    ModuleVersion     = '0.3'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -113,6 +113,9 @@
 
         Version 0.2
         - Added tenant code for dynamic api regions
+
+        Version 0.3
+        - Fixed some header variables
         '
 
         } # End of PSData hashtable
