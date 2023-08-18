@@ -82,33 +82,25 @@ function Connect-SophosCentral {
 
 function New-SophosHeaders {
 
-    [CmdletBinding()]
-    param (
-
-        [switch] $Initial
-    )
-
     $sophosCredentials = Get-SophosCredential
 
     $null = Connect-SophosCentral -ClientID $sophosCredentials.ClientID -ClientSecret $sophosCredentials.ClientSecret
 
-    $headers = @{
+    $Script:sophosHeaders = @{
 
         Authorization = 'Bearer ' + (Unprotect-Secret -Secret $Script:SophosCentral.access_token)
     }
 
     $tenantUri = 'https://api.central.sophos.com/whoami/v1'
 
-    $tenantInfo = Invoke-RestMethod -Uri $tenantUri -Headers $headers -Method Get -UseBasicParsing
+    $tenantInfo = Invoke-RestMethod -Uri $tenantUri -Headers $Script:sophosHeaders -Method Get -UseBasicParsing
 
     $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name GlobalEndpoint -Value $tenantInfo.apiHosts.global
     $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name RegionEndpoint -Value $tenantInfo.apiHosts.dataRegion
     $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name TenantID -Value $tenantInfo.id
     $Script:SophosCentral | Add-Member -MemberType NoteProperty -Name IDType -Value $tenantInfo.idType
 
-    $headers.Add('X-Tenant-ID', $Script:SophosCentral.TenantID)
-
-    $headers
+    $Script:sophosHeaders.Add('X-Tenant-ID', $Script:SophosCentral.TenantID)
 }
 
 function Invoke-SophosCentralWebRequest {
@@ -125,11 +117,9 @@ function Invoke-SophosCentralWebRequest {
         [System.Collections.Hashtable] $Body
     )
 
-    $headers = New-SophosHeaders
-
     $requestParams = @{
         Uri             = $uri
-        Headers         = $headers
+        Headers         = $Script:sophosHeaders
         UseBasicParsing = $true
         Method          = $Method
     }
@@ -154,7 +144,6 @@ function Invoke-SophosCentralWebRequest {
         $requestParams.Add('ContentType', 'application/json')
     }
 
-    #query api and return the first page
     try {
 
         $response = Invoke-RestMethod @requestParams
@@ -176,10 +165,8 @@ function Invoke-SophosCentralWebRequest {
     }
 
 
-    #pagination
     $finished = $false
 
-    #standard pagination - based on nextKey value returned from the previous lookup
     do {
         if ($response.pages.nextKey) {
 
@@ -223,6 +210,8 @@ function Invoke-UriBuilder {
         [Parameter(Mandatory = $False)]
         [array] $FilteredParameters
     )
+
+    New-SophosHeaders
 
     $regionEndpoint = $Script:SophosCentral.RegionEndpoint
 
@@ -366,7 +355,7 @@ function Remove-SophosCentralEndpoint {
 
             $uriEndpoint = '/endpoint/v1/endpoints/{0}' -f $endpoint
 
-            $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
+            $uri = Invoke-UriBuilder -Uri $uriEndpoint
 
             Invoke-SophosCentralWebRequest -Uri $uri -Method Delete
         }
