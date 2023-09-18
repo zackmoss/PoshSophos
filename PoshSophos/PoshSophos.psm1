@@ -204,10 +204,8 @@ function Invoke-UriBuilder {
         [Parameter(Mandatory)]
         [System.Uri] $Uri,
 
-        [Parameter(Mandatory)]
         [hashtable] $OriginalPsBoundParameters,
 
-        [Parameter(Mandatory = $False)]
         [array] $FilteredParameters
     )
 

@@ -12,7 +12,7 @@
     RootModule = 'PoshSophos.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '0.3.1'
+    ModuleVersion     = '0.3.2'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -120,6 +120,9 @@
         
         Version 0.3.1
         - Fixed module manifest
+
+        Version 0.3.2
+        - Fixed Invoke-UriBuilder function
         '
 
         } # End of PSData hashtable
