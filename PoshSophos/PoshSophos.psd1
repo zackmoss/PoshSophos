@@ -12,7 +12,7 @@
     RootModule = 'PoshSophos.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '0.3.2'
+    ModuleVersion     = '0.3.3'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -123,6 +123,9 @@
 
         Version 0.3.2
         - Fixed Invoke-UriBuilder function
+
+        Version 0.3.3
+        - Added Get-SophosCentralSiemEvents and Get-SophosCentralSiemAlerts for getting data into a SIEM tool
         '
 
         } # End of PSData hashtable

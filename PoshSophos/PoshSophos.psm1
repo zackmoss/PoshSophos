@@ -1,3 +1,4 @@
+#requires -Version 2 -Modules NetTCPIP
 
 #region Core Functions
 
@@ -177,6 +178,21 @@ function Invoke-SophosCentralWebRequest {
             else {
 
                 $requestParams['Uri'] = $uri.AbsoluteUri + '?pageFromKey=' + $response.pages.nextKey
+            }
+
+            $response = Invoke-RestMethod @requestParams
+
+            $response.items
+        }
+        elseif ($response.has_more) {
+
+            if ($uri.AbsoluteUri -like '*`?*') {
+
+                $requestParams['Uri'] = $uri.AbsoluteUri + '&cursor=' + $response.next_cursor
+            }
+            else {
+
+                $requestParams['Uri'] = $uri.AbsoluteUri + '?cursor=' + $response.next_cursor
             }
 
             $response = Invoke-RestMethod @requestParams
@@ -364,5 +380,96 @@ function Remove-SophosCentralEndpoint {
     }
 }
 
+
+#endregion
+
+#regoin SIEM Integration Functions
+
+
+function Get-SophosCentralSiemEvents {
+
+    [CmdletBinding()]
+    param (
+
+        # The starting date from which alerts will be retrieved defined as Unix timestamp in UTC. Ignored if cursor is set. Must be within last 24 hours.
+        [datetime] $FromDate,
+
+        [string] $ExcludedTypes,
+
+        # The maximum number of items to return (per page), default is 200, max is 1000.
+        [int] $Limit
+    )
+
+    $params = @{}
+
+    if ($FromDate) {
+
+        $params = @{
+
+            from_date = $FromDate
+        }
+    }
+
+    if ($ExcludedTypes) {
+
+        $params += @{
+
+            excluded_types = $ExcludedTypes
+        }
+    }
+
+    $uriEndpoint = '/siem/v1/events'
+
+    $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $params
+
+    $response = Invoke-SophosCentralWebRequest -Uri $uri
+
+    if ($response.created_at) {
+
+        $response
+    }
+    else {
+
+        Write-Host -Object 'No events found at this time'
+    }
+}
+
+function Get-SophosCentralSiemAlerts {
+
+    [CmdletBinding()]
+    param (
+
+        # The starting date from which alerts will be retrieved defined as Unix timestamp in UTC. Ignored if cursor is set. Must be within last 24 hours.
+        [datetime] $FromDate,
+
+        # The maximum number of items to return (per page), default is 200, max is 1000.
+        [int] $Limit
+    )
+
+    $params = @{}
+
+    if ($FromDate) {
+
+        $params = @{
+
+            from_date = $FromDate
+        }
+    }
+
+    $uriEndpoint = '/siem/v1/alerts'
+
+    $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $params
+
+    $response = Invoke-SophosCentralWebRequest -Uri $uri
+
+    if ($response.created_at) {
+
+        $response
+    }
+    else {
+
+        Write-Host -Object 'No alerts found at this time'
+    }
+}
 
 #endregion
