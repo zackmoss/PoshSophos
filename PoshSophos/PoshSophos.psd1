@@ -12,7 +12,7 @@
     RootModule = 'PoshSophos.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '0.3.3'
+    ModuleVersion     = '0.3.4'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -126,6 +126,9 @@
 
         Version 0.3.3
         - Added Get-SophosCentralSiemEvents and Get-SophosCentralSiemAlerts for getting data into a SIEM tool
+
+        Version 0.3.4
+        - Added TLS setting for connection to Sophos Central
         '
 
         } # End of PSData hashtable

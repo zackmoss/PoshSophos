@@ -43,6 +43,8 @@ function Connect-SophosCentral {
         [String] $ClientSecret
     )
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
     if ($null -eq $ClientSecret) {
 
         $ClientSecret = Read-Host -AsSecureString -Prompt 'Client Secret: '
