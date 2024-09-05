@@ -1,8 +1,7 @@
-#requires -Version 2 -Modules NetTCPIP
 
 #region Core Functions
 
-function Get-SophosCredential {
+function Get-SophosCentralCredential {
 
     try {
 
@@ -43,7 +42,12 @@ function Connect-SophosCentral {
         [String] $ClientSecret
     )
 
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $currentProtocol = [Net.ServicePointManager]::SecurityProtocol
+
+    if ($currentProtocol.ToString().Split(',').Trim() -notcontains 'Tls12') {
+
+        [Net.ServicePointManager]::SecurityProtocol += [Net.SecurityProtocolType]::Tls12
+    }
 
     if ($null -eq $ClientSecret) {
 
@@ -83,9 +87,9 @@ function Connect-SophosCentral {
     $Script:SophosCentral
 }
 
-function New-SophosHeaders {
+function New-SophosCentralHeaders {
 
-    $sophosCredentials = Get-SophosCredential
+    $sophosCredentials = Get-SophosCentralCredential
 
     $null = Connect-SophosCentral -ClientID $sophosCredentials.ClientID -ClientSecret $sophosCredentials.ClientSecret
 
@@ -227,7 +231,7 @@ function Invoke-UriBuilder {
         [array] $FilteredParameters
     )
 
-    New-SophosHeaders
+    New-SophosCentralHeaders
 
     $regionEndpoint = $Script:SophosCentral.RegionEndpoint
 
@@ -311,6 +315,9 @@ function Get-SophosCentralEndpoint {
         [ValidateSet('isolated', 'notIsolated')]
         [string] $IsolationStatus,
 
+        [ValidateSet('basic', 'summary', 'full')]
+        [string] $View,
+
         [string] $HostnameContains,
 
         [string] $IpAddresses,
@@ -345,6 +352,39 @@ function Get-SophosCentralEndpoint {
     }
 
     $uriEndpoint = '/endpoint/v1/endpoints'
+
+    $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
+
+    Invoke-SophosCentralWebRequest -Uri $uri
+}
+
+function Get-SophosCentralEndpointDetail {
+
+    [CmdletBinding()]
+    param (
+
+        [ValidateSet('basic', 'summary', 'full')]
+        [string] $View,
+
+        [ValidateScript({
+                if ($false -eq [System.Guid]::TryParse($_, $([ref][guid]::Empty))) {
+                    throw 'Not a valid GUID'
+                }
+                else {
+                    return $true
+                }
+            })]
+        [string[]] $ID
+    )
+
+    if ($ID.count -gt 0) {
+
+        $PsBoundParameters.Add('ids', $PsBoundParameters['ID'])
+
+        $null = $PsBoundParameters.Remove('ID')
+    }
+
+    $uriEndpoint = ('/endpoint/v1/endpoints/{0}' -f $ID)
 
     $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
 

@@ -12,7 +12,7 @@
     RootModule = 'PoshSophos.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '0.3.4'
+    ModuleVersion     = '0.3.5'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -129,6 +129,10 @@
 
         Version 0.3.4
         - Added TLS setting for connection to Sophos Central
+
+        Version 0.3.5
+        - Added append function for TLS1.2
+        - Restructure and rename some functions for standardization
         '
 
         } # End of PSData hashtable
