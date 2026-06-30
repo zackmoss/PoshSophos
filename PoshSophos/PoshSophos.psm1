@@ -235,7 +235,10 @@ function Invoke-UriBuilder {
 
     $regionEndpoint = $Script:SophosCentral.RegionEndpoint
 
-    $Uri = $regionEndpoint + $Uri
+    if ($Uri -notmatch '^https') {
+
+        $Uri = $regionEndpoint + $Uri
+    }
 
     $uriBuilder = [System.UriBuilder]::New($Uri.AbsoluteUri)
 
@@ -288,6 +291,26 @@ function Unprotect-Secret {
 
     $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secret)
     [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+}
+
+
+#endregion
+
+#region Token Management Functions
+
+
+function Get-SophosCentralApiTokens {
+
+    [CmdletBinding()]
+    param ()
+
+    New-SophosCentralHeaders
+
+    $uriEndpoint = 'https://api.central.sophos.com/accounts/v1/access-tokens'
+
+    $uri = Invoke-UriBuilder -Uri $uriEndpoint -OriginalPsBoundParameters $PsBoundParameters
+
+    Invoke-SophosCentralWebRequest -Uri $uri
 }
 
 
